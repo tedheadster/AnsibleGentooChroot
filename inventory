@@ -1,3 +1,3 @@
 [chroots]
 
-/mnt/gentoo01 ansible_connection=chroot
+/mnt/gentoo ansible_connection=chroot
