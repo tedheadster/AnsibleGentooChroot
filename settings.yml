@@ -12,14 +12,6 @@
 # GENTOO_STAGE3_CHOICE : systemd, there are several choices released by Gentoo for this [Gentoo]
 # HOST_FIRMWARE : bios or efi [parted]
 
-# The top level device where Gentoo will be installed
-MAIN_DISK: "/dev/sda"
-
-# Where the installation disk will be mounted on the host system
-# You must ALSO change the entry in your inventory file to the same value
-# /mnt/gentoo01 ansible_connection=chroot
-GENTOO_DIR: "/mnt/gentoo00"
-
 BOOT_DIR: "{{ GENTOO_DIR }}/boot"
 EFI_DIR: "{{ BOOT_DIR }}/efi"
 

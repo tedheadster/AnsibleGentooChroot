@@ -26,6 +26,7 @@
     package_list: []
 
   vars_files:
+    - disks.yml
     - settings.yml
 
   handlers:
