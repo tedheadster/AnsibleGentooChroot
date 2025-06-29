@@ -13,12 +13,12 @@
 # HOST_FIRMWARE : bios or efi [parted]
 
 # The top level device where Gentoo will be installed
-MAIN_DISK: "/dev/sdc"
+MAIN_DISK: "/dev/sd"
 
 # Where the installation disk will be mounted on the host system
 # You must ALSO change the entry in your inventory file to the same value
 # /mnt/gentoo01 ansible_connection=chroot
-GENTOO_DIR: "/mnt/gentoo01"
+GENTOO_DIR: "/mnt/gentoo"
 
 BOOT_DIR: "{{ GENTOO_DIR }}/boot"
 EFI_DIR: "{{ BOOT_DIR }}/efi"
