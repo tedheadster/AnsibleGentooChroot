@@ -13,12 +13,12 @@
 # HOST_FIRMWARE : bios or efi [parted]
 
 # The top level device where Gentoo will be installed
-MAIN_DISK: "/dev/sd"
+MAIN_DISK: "/dev/sda"
 
 # Where the installation disk will be mounted on the host system
 # You must ALSO change the entry in your inventory file to the same value
 # /mnt/gentoo01 ansible_connection=chroot
-GENTOO_DIR: "/mnt/gentoo"
+GENTOO_DIR: "/mnt/gentoo00"
 
 BOOT_DIR: "{{ GENTOO_DIR }}/boot"
 EFI_DIR: "{{ BOOT_DIR }}/efi"
@@ -146,6 +146,9 @@ SYSTEMD_MACHINE_ID_SETUP: "{{ '/usr/bin/systemd-machine-id-setup' if LONG_FILENA
 
 # sys-apps/coreutils
 SYNC: "{{ '/usr/bin/sync' if LONG_FILENAMES else 'sync' }}"
+
+# sys-apps/util-linux
+PARTX: "{{ '/usr/sbin/partx' if LONG_FILENAMES else 'partx' }}"
 
 # Your Custom Settings
 #AUTHORIZED_KEYS_URL: "https://go.stargazer.at/authorized_keys" # URL pointing to a file containing your public SSH keys
