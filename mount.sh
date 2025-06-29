@@ -39,7 +39,7 @@ SWAPON=/usr/sbin/swapon
 
 ${MOUNT} ${ROOT} ${GENTOO}
 ${MOUNT} ${BOOT} ${GENTOO}/boot
-if [ -d "${EFI}" ]; then
+if [ -n "${EFI}" ]; then
     ${MOUNT} ${EFI} ${GENTOO}/boot/efi
 fi
 ${MOUNT} --bind /run ${GENTOO}/run

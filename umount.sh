@@ -43,8 +43,8 @@ ${UMOUNT} -R ${GENTOO}/dev
 ${UMOUNT} -R ${GENTOO}/sys
 ${UMOUNT} -R ${GENTOO}/proc
 ${UMOUNT} -R ${GENTOO}/run
-if [ -d "${EFI}" ]; then
-    ${UMOUNT} ${EFI} ${GENTOO}/boot/efi
+if [ -n "${EFI}" ]; then
+    ${UMOUNT} -R ${GENTOO}/boot/efi
 fi
 ${UMOUNT} -R ${GENTOO}/boot
 ${UMOUNT} -R ${GENTOO}
