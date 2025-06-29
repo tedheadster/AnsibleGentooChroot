@@ -231,8 +231,8 @@ nfs_portage_path: "/path/to/Portage"  # The path to Portage on the NFS server
 GENTOO_PROFILE_VERS: "23.0"
 
 DISK:
-  "504c5135":
-    ptuuid: "504c5135"
+  "00000011":
+    ptuuid: "00000011"
     gentoo_dir: "/mnt/gentoo00"
     arch_major: "arm64"
     arch_minor: "arm64"
@@ -248,9 +248,26 @@ DISK:
     gentoo_profile_menu: "default/linux/arm64/23.0/systemd"
     grub_platforms: "arm64"
 
-  "4ffa3232":
-    ptuuid: "4ffa3232"
+  "00000012":
+    ptuuid: "00000012"
     gentoo_dir: "/mnt/gentoo01"
+    arch_major: "arm64"
+    arch_minor: "arm64"
+    arch_model: "cortex-a76"
+    arch_march: "armv8-a"
+    arch_mtune: "cortex-a76"
+    accept_keywords: "~arm64"
+    chost: "aarch64-unknown-linux-gnu"
+    num_cpus: 4
+    hostname: "armv8a-cortexa7-arm64-pi5cm.example.com"
+    host_firmware: "efi"
+    gentoo_stage3_choice: "systemd"
+    gentoo_profile_menu: "default/linux/arm64/23.0/systemd"
+    grub_platforms: "arm64"
+
+  "00000001":
+    ptuuid: "00000001"
+    gentoo_dir: "/mnt/gentoo02"
     arch_major: "x86"
     arch_minor: "i486"
     arch_model: "pentium-mmx"
@@ -265,9 +282,9 @@ DISK:
     gentoo_profile_menu: "default/linux/x86/23.0/i486/systemd"
     grub_platforms: "pc i386-pc"
 
-  "59551b02":
-    ptuuid: "59551b02"
-    gentoo_dir: "/mnt/gentoo02"
+  "00000002":
+    ptuuid: "00000002"
+    gentoo_dir: "/mnt/gentoo03"
     arch_major: "amd64"
     arch_minor: "amd64"
     arch_model: "amd64"
