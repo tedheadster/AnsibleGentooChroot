@@ -1,19 +1,40 @@
 #!/bin/bash -x
 
-DISK=/dev/sda
 GENTOO=/mnt/$( ls /mnt )
+UNAME=$( /usr/bin/uname -m )
 
-ROOT=${DISK}4
-BOOT=${DISK}1
-EFI=${DISK}2
-SWAP=${DISK}3
+case "${UNAME}" in
+
+    aarch64)
+	DISK="/dev/sda"
+	ROOT=${DISK}4
+	BOOT=${DISK}1
+	SWAP=${DISK}3
+	EFI=${DISK}2
+
+    i686)
+	DISK="/dev/sdb"
+	ROOT=${DISK}3
+	BOOT=${DISK}1
+	SWAP=${DISK}2
+	EFI=""
+
+
+    x86_64)
+	DISK="/dev/sdb"
+	ROOT=${DISK}3
+	BOOT=${DISK}1
+	SWAP=${DISK}2
+	EFI=""
 
 MOUNT=/usr/bin/mount
 SWAPON=/usr/sbin/swapon
 
 ${MOUNT} ${ROOT} ${GENTOO}
 ${MOUNT} ${BOOT} ${GENTOO}/boot
-${MOUNT} ${EFI} ${GENTOO}/boot/efi
+if [ -d "${EFI}" ]; then
+    ${MOUNT} ${EFI} ${GENTOO}/boot/efi
+fi
 ${MOUNT} --bind /run ${GENTOO}/run
 ${MOUNT} --type proc /proc ${GENTOO}/proc
 ${MOUNT} --rbind /sys ${GENTOO}/sys
