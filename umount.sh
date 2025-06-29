@@ -11,6 +11,8 @@ case "${UNAME}" in
 	BOOT=${DISK}1
 	SWAP=${DISK}3
 	EFI=${DISK}2
+	;;
+
 
     i686)
 	DISK="/dev/sdb"
@@ -18,6 +20,8 @@ case "${UNAME}" in
 	BOOT=${DISK}1
 	SWAP=${DISK}2
 	EFI=""
+	;;
+
 
     x86_64)
 	DISK="/dev/sdb"
@@ -25,6 +29,11 @@ case "${UNAME}" in
 	BOOT=${DISK}1
 	SWAP=${DISK}2
 	EFI=""
+	;;
+
+    *)
+	;;
+esac
 
 UMOUNT=/usr/bin/umount
 SWAPOFF=/usr/sbin/swapoff
