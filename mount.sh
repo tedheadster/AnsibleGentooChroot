@@ -21,7 +21,6 @@ case "${UNAME}" in
 	EFI=""
 	;;
 
-
     x86_64)
 	DISK="/dev/sdb"
 	ROOT=${DISK}3

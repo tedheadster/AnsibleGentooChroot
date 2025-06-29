@@ -13,7 +13,6 @@ case "${UNAME}" in
 	EFI=${DISK}2
 	;;
 
-
     i686)
 	DISK="/dev/sdb"
 	ROOT=${DISK}3
@@ -21,7 +20,6 @@ case "${UNAME}" in
 	SWAP=${DISK}2
 	EFI=""
 	;;
-
 
     x86_64)
 	DISK="/dev/sdb"
