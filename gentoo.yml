@@ -207,6 +207,9 @@
       changed_when: true
       delegate_to: "/"
 
+    - name: "Sync on-disk partition table and kernel for  {{ MAIN_DISK }}"
+      ansible.builtin.command: "{{ PARTX }} {{ MAIN_DISK }}"
+
     - name: "Create {{ PARTITION_TABLE }} partition table"
       community.general.parted:
         device: "{{ MAIN_DISK }}"
@@ -344,6 +347,9 @@
       when:
         - FULL_INSTALL or DEBUG_PARTUUID
       delegate_to: "/"
+
+    - name: "Sync on-disk partition table and kernel for  {{ MAIN_DISK }}"
+      ansible.builtin.command: "{{ PARTX }} {{ MAIN_DISK }}"
 
     - name: "Format EFI partition ({{ FSTYPE_EFI }})"
       community.general.filesystem:
