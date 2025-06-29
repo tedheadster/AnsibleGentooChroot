@@ -63,7 +63,7 @@ PORTAGE_DIR: "/etc/portage"
 # app-admin/eselect app-alternatives/tar app-arch/tar app-misc/ca-certificates app-shells/bash dev-vcs/git net-misc/curl sys-apps/coreutils sys-apps/grep sys-apps/locale-gen sys-apps/portage sys-apps/systemd sys-apps/util-linux sys-block/parted sys-fs/dosfstools
 
 # Pathnames for commands: short ones that are found using $PATH or absolute pathnames
-LONG_FILENAMES: true
+LONG_FILENAMES: false
 
 # app-shells/bash
 BASH: "{{ '/bin/bash' if LONG_FILENAMES else 'bash' }}"
