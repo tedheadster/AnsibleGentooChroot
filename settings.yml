@@ -1,0 +1,305 @@
+# You MUST set the following variables:
+# MAIN_DISK  : no default
+# GENTOO_DIR : /mnt/gentoo00, /mnt/gentoo01, /mnt/gentoo02, ...
+
+# Tunables:
+# ARCH_MAJOR : amd64 (64-bit), x86 (32-bit) [Gentoo]
+# ARCH_MINOR : amd64, i486, i686 [Gentoo]
+# ARCH_MARCH : x86-64, i486, i586, pentium-mmx, i686, pentium2, pentium3, ... [GCC]
+# ARCH_MTUNE : Generally the same as ARCH_MARCH [GCC]
+# CHOST      : x86_64-pc-linux-gnu, i486-pc-linux-gnu, i586-pc-linux-gnu, i686-pc-linux-gnu, ... [GCC, bintools, Gentoo]
+# NUM_CPUS   : 16, the number of cores your machine has [make]
+# GENTOO_STAGE3_CHOICE : systemd, there are several choices released by Gentoo for this [Gentoo]
+# HOST_FIRMWARE : bios or efi [parted]
+
+# The top level device where Gentoo will be installed
+MAIN_DISK: "/dev/sdc"
+
+# Where the installation disk will be mounted on the host system
+# You must ALSO change the entry in your inventory file to the same value
+# /mnt/gentoo01 ansible_connection=chroot
+GENTOO_DIR: "/mnt/gentoo01"
+
+BOOT_DIR: "{{ GENTOO_DIR }}/boot"
+EFI_DIR: "{{ BOOT_DIR }}/efi"
+
+# Partition table type
+PARTITION_TABLE: "msdos"
+
+# How to format / partition
+FORMAT_ROOT: "ext4"
+FSTYPE_ROOT: "ext4"
+FSTYPE_ROOT_OPTS: ""
+
+# How for format swap partition
+FORMAT_SWAP: "linux-swap(new)"
+FSTYPE_SWAP: "swap"
+FSTYPE_SWAP_OPTS: ""
+
+# How to format /efi partition
+FORMAT_EFI: "fat32"
+FSTYPE_EFI: "vfat"
+FSTYPE_EFI_OPTS: "-F32"
+
+# How to format /boot partition
+FORMAT_BOOT: "ext3"
+FSTYPE_BOOT: "ext3"
+FSTYPE_BOOT_OPTS: ""
+
+# What version of the linux firmware package to use
+LINUX_FIRMWARE: "20250410"
+
+# Where to download the software
+GENTOO_MIRRORS: "http://mirrors.rit.edu/gentoo"
+# GENTOO_MIRRORS_URL: "{{ GENTOO_MIRRORS }}/releases/{{ ARCH_MAJOR }}/autobuilds/current-stage3-{{ ARCH_MINOR }}-{{ GENTOO_STAGE3_CHOICE }}"
+
+# Locale settings
+OPENRC_LOCALE: "en_US"
+SYSTEMD_LOCALE: "en_US.UTF8"
+
+PORTAGE_DIR: "/etc/portage"
+
+# Required packages:
+# app-admin/eselect app-alternatives/tar app-arch/tar app-misc/ca-certificates app-shells/bash dev-vcs/git net-misc/curl sys-apps/coreutils sys-apps/grep sys-apps/locale-gen sys-apps/portage sys-apps/systemd sys-apps/util-linux sys-block/parted sys-fs/dosfstools
+
+# Pathnames for commands: short ones that are found using $PATH or absolute pathnames
+LONG_FILENAMES: true
+
+# app-shells/bash
+BASH: "{{ '/bin/bash' if LONG_FILENAMES else 'bash' }}"
+
+# net-misc/curl
+CURL: "{{ '/usr/bin/curl' if LONG_FILENAMES else 'curl' }}"
+
+# sys-apps/util-linux
+SWAPOFF: "{{ '/sbin/swapoff' if LONG_FILENAMES else 'swapoff' }}"
+
+# sys-apps/util-linux
+SWAPON: "{{ '/sbin/swapon' if LONG_FILENAMES else 'swapon' }}"
+
+# sys-apps/util-linux
+LSBLK: "{{ '/bin/lsblk' if LONG_FILENAMES else 'lsblk' }}"
+
+# sys-apps/util-linux
+BLKID: "{{ '/sbin/blkid' if LONG_FILENAMES else 'blkid' }}"
+
+# sys-apps/util-linux
+UMOUNT: "{{ '/bin/umount' if LONG_FILENAMES else 'umount' }}"
+
+# sys-apps/util-linux
+MOUNT: "{{ '/bin/mount' if LONG_FILENAMES else 'mount' }}"
+
+# sys-apps/util-linux
+WIPEFS: "{{ '/sbin/wipefs' if LONG_FILENAMES else 'wipefs' }}"
+
+# sys-block/parted
+PARTED: "{{ '/usr/sbin/parted' if LONG_FILENAMES else 'parted' }}"
+
+# sys-apps/grep
+GREP: "{{ '/bin/grep' if LONG_FILENAMES else 'grep' }}"
+
+# app-alternatives/tar
+# app-arch/tar
+TAR: "{{ '/bin/tar' if LONG_FILENAMES else 'tar' }}"
+
+# sys-apps/coreutils
+CHROOT: "{{ '/usr/bin/chroot' if LONG_FILENAMES else 'chroot' }}"
+
+# sys-apps/portage
+ENV_UPDATE: "{{ '/usr/sbin/env-update' if LONG_FILENAMES else 'env-update' }}"
+
+# sys-apps/portage
+EMERGE_WEBRSYNC: "{{ '/usr/bin/emerge-webrsync' if LONG_FILENAMES else 'emerge-webrsync' }}"
+
+# sys-apps/portage
+EMERGE_COMMAND: "{{ '/usr/bin/emerge' if LONG_FILENAMES else 'emerge' }}"
+
+# app-misc/ca-certificates
+UPDATE_CA_CERTIFICATES: "{{ '/usr/sbin/update-ca-certificates' if LONG_FILENAMES else 'update-ca-certificates' }}"
+
+# app-admin/eselect
+ESELECT: "{{ '/usr/bin/eselect' if LONG_FILENAMES else 'eselect' }}"
+
+# sys-apps/portage
+EBUILD: "{{ '/usr/bin/ebuild' if LONG_FILENAMES else 'ebuild' }}"
+
+# sys-apps/locale-gen
+LOCALE_GEN: "{{ '/usr/sbin/locale-gen' if LONG_FILENAMES else 'locale-gen' }}"
+
+# sys-apps/systemd
+SYSTEMCTL: "{{ '/usr/bin/systemctl' if LONG_FILENAMES else 'systemctl' }}"
+
+# sys-apps/systemd
+LOCALECTL: "{{ '/usr/bin/localectl' if LONG_FILENAMES else 'localectl' }}"
+
+# dev-vcs/git
+GIT: "{{ '/usr/bin/git' if LONG_FILENAMES else 'git' }}"
+
+# sys-fs/dosfstools
+MKFS_VFAT: "{{ '/usr/sbin/mkfs.vfat' if LONG_FILENAMES else 'mkfs.vfat' }}"
+
+# sys-boot/grub
+GRUB_INSTALL: "{{ '/usr/bin/grub-install' if LONG_FILENAMES else 'grub-install' }}"
+
+# sys-apps/systemd
+SYSTEMD_MACHINE_ID_SETUP: "{{ '/usr/bin/systemd-machine-id-setup' if LONG_FILENAMES else 'systemd-machine-id-setup' }}"
+
+# sys-apps/coreutils
+SYNC: "{{ '/usr/bin/sync' if LONG_FILENAMES else 'sync' }}"
+
+# Your Custom Settings
+#AUTHORIZED_KEYS_URL: "https://go.stargazer.at/authorized_keys" # URL pointing to a file containing your public SSH keys
+AUTHORIZED_KEYS_URL: "file:///root/.ssh/authorized_keys"
+pem_file_path: "ucs-root-ca.pem"   # Path to your root CA certificate file (e.g., for SSL verification) 
+nfs_portage_host: "nfs-server.local"  # If using NFS for Portage, specify the host name or IP address. (Example)
+nfs_portage_path: "/path/to/Portage"  # The path to Portage on the NFS server
+
+# Packages needed to do install:
+# sys-block/parted
+
+# eix '-I*' --format '<installedversions:DATESORT>' | sort -n
+# TZ=UTC printf '%(%H:%M:%S)T\n' or '%(%T)T\n' 
+# %(fmt)T output the date-time string resulting from using FMT as a format string for strftime(3)
+
+# arch_major
+# Major Gentoo architecture (others not listed also available:
+# amd64, arm, arm64, riscv, x86, and others
+# See http://mirrors.rit.edu/gentoo/releases/ for details
+
+# arch_minor
+# Minor architecture (others not listed also available):
+# amd64: amd64, amd64-nomultilib, x32
+# arm: armv4tl, armv5tel, armv6j_hardfp, armv7a, armv7a_hardfp
+# arm64: aarch64_be, arm64
+# riscv: rv32_ilp32, rv32_ilp32d, rv64_lp64, rv64_lp64d, rv64_multilib
+# x86: i486, i686, i686-ssemath, i686-ssemath-t64
+# See http://mirrors.rit.edu/gentoo/releases/*/autobuilds/current-stage3-* for details
+
+# arch_model
+# amd64, i486, pentium, pentium-mmx, cortex-a76
+
+# arch_march
+# arch_mtune
+# GCC settings for -march= and -mtune=
+# You must research your processor model exactly or play it safe with 'native'.
+# See https://gcc.gnu.org/onlinedocs/gcc/Submodel-Options.html for more details.
+# It is reasonable to use ARCH_MARCH="native" and ARCH_MTUNE="native" for
+# building on the same machine.
+
+# accept_keywords
+# Is usually ~x86, ~amd64 or ~arm64
+
+# chost
+# First field is the cpu architecture (others not listed also available):
+# aarch64, aarch64_be, i486, i686, riscv32, riscv64, x86_64
+# See https://wiki.gentoo.org/wiki/CHOST for details
+# For x86_64 we have to use 'pc' instead of 'unknown' because it breaks compilation of dev-db/sqlite
+
+# num_cpus
+# Number of processors on your machine to use for compiling
+
+# hostname
+# Examples:
+# "i586-k6-mk6-k6.example.com"
+# "i586-i586-m586-k5.example.com"
+# "i586-pentium-mmx-m586-pentium-mmx.example.com"
+# "i586-i586-m586-i586.example.com"
+# "i686-c3-2-mviac3_2-viac3_2.example.com"
+# "x86_64-x86-mhaswell-lenovo.example.com"
+
+# host_firmware
+# Can be "bios" or "efi"
+
+# gentoo_stage3_choice
+# 
+# See http://mirrors.rit.edu/gentoo/releases/*/autobuilds/ for current choices
+# Examples below are for 'amd64' only.
+# musl is an alternative C library replacing the default glibc
+# llvm is an alternative compiler replacing the default gcc
+# systemd an openrc are packages for system startup/shutdown, replacing the older sysvinit approach
+# The desktop option adds a graphical interface
+# The hardened and hardened-selinux are security enhanced releases
+
+# Options: systemd, openrc, openrc-splitusr
+# Can also be "" (empty) for -musl, -musl-hardened, and -musl-llvm for GENTOO_STAGE3_CHOICE (below)
+# GENTOO_INIT_PROGRAM: "systemd"
+
+# Options: -desktop-, -hardened, -hardened-selinux, -llvm, -nomultilib
+#GENTOO_STAGE3_CHOICE: "nomultilib-{{ GENTOO_INIT_PROGRAM }}"
+#GENTOO_STAGE3_CHOICE: "{{ GENTOO_INIT_PROGRAM }}"
+
+GENTOO_PROFILE_VERS: "23.0"
+
+DISK:
+  "504c5135":
+    ptuuid: "504c5135"
+    gentoo_dir: "/mnt/gentoo00"
+    arch_major: "arm64"
+    arch_minor: "arm64"
+    arch_model: "cortex-a76"
+    arch_march: "armv8-a"
+    arch_mtune: "cortex-a76"
+    accept_keywords: "~arm64"
+    chost: "aarch64-unknown-linux-gnu"
+    num_cpus: 4
+    hostname: "armv8a-cortexa7-arm64-pi5cm.example.com"
+    host_firmware: "efi"
+    gentoo_stage3_choice: "systemd"
+    gentoo_profile_menu: "default/linux/arm64/23.0/systemd"
+    grub_platforms: "arm64"
+
+  "4ffa3232":
+    ptuuid: "4ffa3232"
+    gentoo_dir: "/mnt/gentoo01"
+    arch_major: "x86"
+    arch_minor: "i486"
+    arch_model: "pentium-mmx"
+    arch_march: "pentium-mmx"
+    arch_mtune: "pentium-mmx"
+    accept_keywords: "~x86"
+    chost: "i586-pc-linux-gnu"
+    num_cpus: 8
+    hostname: "i586-i586-m586-i586.example.com"
+    host_firmware: "bios"
+    gentoo_stage3_choice: "systemd"
+    gentoo_profile_menu: "default/linux/x86/23.0/i486/systemd"
+    grub_platforms: "pc i386-pc"
+
+  "59551b02":
+    ptuuid: "59551b02"
+    gentoo_dir: "/mnt/gentoo02"
+    arch_major: "amd64"
+    arch_minor: "amd64"
+    arch_model: "amd64"
+    arch_march: "haswell"
+    arch_mtune: "haswell"
+    accept_keywords: "~amd64"
+    chost: "x86_64-pc-linux-gnu"
+    num_cpus: 16
+    hostname: "x86_64-x86-mhaswell-dell.example.com"
+    host_firmware: "bios"
+    gentoo_stage3_choice: "nomultilib-systemd"
+    gentoo_profile_menu: "default/linux/amd64/23.0/no-multilib/systemd"
+    grub_platforms: "pc i386-pc"
+
+DEBUG_SWAP: false
+DEBUG_STAGE3: false
+DEBUG_MOUNTS: false
+DEBUG_PARTUUID: false
+DEBUG_MOUNTS_SPECIAL: false
+DEBUG_FSTAB: false
+DEBUG_WEBRSYNC: false
+DEBUG_SYNCPORTAGE: false
+DEBUG_DEBUGEDIT: false
+DEBUG_GENERAL_PACKAGES: false
+DEBUG_ADDITIONAL: false
+DEBUG_SYSTEMD: false
+DEBUG_GLIBC: false
+DEBUG_GCC: false
+DEBUG_FIRMWARE: false
+DEBUG_INSTALLKERNEL: false
+DEBUG_KERNEL: false
+DEBUG_UNMOUNT_ALL: false
+
+FULL_INSTALL: true
+FULL_REBUILD: true
