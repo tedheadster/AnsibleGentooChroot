@@ -1223,20 +1223,6 @@
       notify: SyncDisks
       delegate_to: "/"
 
-    - name: "Unmount {{ GENTOO_DIR }}/dev {{ GENTOO_DIR }}/sys {{ GENTOO_DIR }}/proc {{ GENTOO_DIR }}/run {{ GENTOO_DIR }}/boot {{ GENTOO_DIR }}/efi"
-      ansible.builtin.command: "{{ UMOUNT }} -R {{ GENTOO_DIR }}/dev {{ GENTOO_DIR }}/sys {{ GENTOO_DIR }}/proc {{ GENTOO_DIR }}/run {{ GENTOO_DIR }}/boot {{ GENTOO_DIR }}/efi"
-      when: FULL_INSTALL or DEBUG_UNMOUNT_ALL
-      changed_when: true
-      notify: SyncDisks
-      delegate_to: "/"
-      
-    - name: "Unmount {{ GENTOO_DIR }}"
-      ansible.builtin.command: "{{ UMOUNT }} -lR {{ GENTOO_DIR }}"
-      when: FULL_INSTALL or DEBUG_UNMOUNT_ALL
-      changed_when: true
-      notify: SyncDisks
-      delegate_to: "/"
-
     - name: "Breakpoint: ansible.builtin.meta: end_play"
       ansible.builtin.meta: end_play
       when: true
