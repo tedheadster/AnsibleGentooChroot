@@ -2,4 +2,4 @@
 *.log
 localvars.yml
 inventory
-
+logs/**
