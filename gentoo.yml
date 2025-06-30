@@ -675,7 +675,7 @@
 
     - name: "Synchronize portage repository"
       community.general.portage:
-        sync: web
+        sync: true
         noreplace: false
       when: FULL_INSTALL or DEBUG_WEBRSYNC
       changed_when: true
@@ -1123,6 +1123,21 @@
     - name: "Print GRUB results"
       ansible.builtin.debug:
         msg: "{{ grub_result }}"
+
+    - name: "Install any updated packages"
+      community.general.portage:
+        sync: true
+        state: latest
+        quiet: true
+        quietbuild: true
+        noreplace: false
+	deep: true
+	newuse: true
+        package:
+          - '@world'
+      when: FULL_INSTALL or FULL_REBUILD or DEBUG_KERNEL
+      changed_when: true
+      notify: SyncDisks
 
     - name: "Create unique /etc/machine-id"
       ansible.builtin.command: "{{ BASH }} -c '{{ SYSTEMD_MACHINE_ID_SETUP }}'"
