@@ -1093,9 +1093,9 @@
         group: root
         mode: '0755'
 
-    - name: "Ensure {{ PORTAGE_DIR }}/savedconfig/sys-kernel/gentoo-kernel-6.12.31 exists"
+    - name: "Ensure {{ PORTAGE_DIR }}/savedconfig/sys-kernel/gentoo-kernel"
       ansible.builtin.file:
-        path: "{{ PORTAGE_DIR }}/savedconfig/sys-kernel/gentoo-kernel-6.12.31"
+        path: "{{ PORTAGE_DIR }}/savedconfig/sys-kernel/gentoo-kernel"
         state: directory
         owner: root
         group: root
