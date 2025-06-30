@@ -209,7 +209,7 @@
       delegate_to: "/"
 
     - name: "Sync on-disk partition table and kernel for  {{ MAIN_DISK }}"
-      ansible.builtin.command: "{{ PARTX }} {{ MAIN_DISK }}"
+      ansible.builtin.command: "{{ PARTPROBE }} {{ MAIN_DISK }}"
       delegate_to: "/"
 
     - name: "Create {{ PARTITION_TABLE }} partition table"
@@ -351,7 +351,7 @@
       delegate_to: "/"
 
     - name: "Sync on-disk partition table and kernel for  {{ MAIN_DISK }}"
-      ansible.builtin.command: "{{ PARTX }} {{ MAIN_DISK }}"
+      ansible.builtin.command: "{{ PARTPROBE }} {{ MAIN_DISK }}"
       delegate_to: "/"
 
     - name: "Format EFI partition ({{ FSTYPE_EFI }})"

@@ -142,6 +142,9 @@ SYNC: "{{ '/usr/bin/sync' if LONG_FILENAMES else 'sync' }}"
 # sys-apps/util-linux
 PARTX: "{{ '/usr/sbin/partx' if LONG_FILENAMES else 'partx' }}"
 
+# sys-block/parted
+PARTPROBE: "{{ '/usr/sbin/partprobe' if LONG_FILENAMES else 'partprobe' }}"
+
 # Your Custom Settings
 #AUTHORIZED_KEYS_URL: "https://go.stargazer.at/authorized_keys" # URL pointing to a file containing your public SSH keys
 AUTHORIZED_KEYS_URL: "file:///root/.ssh/authorized_keys"
