@@ -226,7 +226,7 @@
         number: "{{ EFI_ID }}"
         label: "{{ PARTITION_TABLE }}"
         part_start: "2048s"
-        part_end: "10239s"
+        part_end: "1050623s"
         fs_type: "{{ FORMAT_EFI }}"
         flags:
           - 'boot'
@@ -252,31 +252,16 @@
         - DISK[PTUUID]['host_firmware'] == 'efi'
       delegate_to: "/"
 
-    - name: "Create boot partition for 'bios' systems"
+    - name: "Create boot partition"
       community.general.parted:
         device: "{{ MAIN_DISK }}"
         number: "{{ BOOT_ID }}"
         label: "{{ PARTITION_TABLE }}"
-        part_start: "{{ '10240s' if DISK[PTUUID]['host_firmware'] == 'efi' else '2048s' }}"
-        part_end: "1048575s"
-        fs_type: "{{ FORMAT_BOOT }}"
-        flags:
-          - 'boot'
-        state: present
-      when: FULL_INSTALL and DISK[PTUUID]['host_firmware'] == 'bios'
-      changed_when: true 
-      delegate_to: "/"
-
-    - name: "Create boot partition for 'efi' systems"
-      community.general.parted:
-        device: "{{ MAIN_DISK }}"
-        number: "{{ BOOT_ID }}"
-        label: "{{ PARTITION_TABLE }}"
-        part_start: "{{ '10240s' if DISK[PTUUID]['host_firmware'] == 'efi' else '2048s' }}"
-        part_end: "1048575s"
+        part_start: "{{ '1050624s' if DISK[PTUUID]['host_firmware'] == 'efi' else '2048s' }}"
+        part_end: "{{ '2099199s' if DISK[PTUUID]['host_firmware'] == 'efi' else '1050623s' }}"
         fs_type: "{{ FORMAT_BOOT }}"
         state: present
-      when: FULL_INSTALL and DISK[PTUUID]['host_firmware'] == 'efi'
+      when: FULL_INSTALL
       changed_when: true 
       delegate_to: "/"
 
@@ -299,8 +284,8 @@
         device: "{{ MAIN_DISK }}"
         number: "{{ SWAP_ID }}"
         label: "{{ PARTITION_TABLE }}"
-        part_start: "1048576s"
-        part_end: "3145727s"
+        part_start: "{{ '2099200s' if DISK[PTUUID]['host_firmware'] == 'efi' else '1050624s' }}"
+        part_end: "{{ '4196351s' if DISK[PTUUID]['host_firmware'] == 'efi' else '3147775s' }}"
         fs_type: "{{ FORMAT_SWAP }}"
         flags:
           - "swap"
@@ -328,7 +313,7 @@
         device: "{{ MAIN_DISK }}"
         number: "{{ ROOT_ID }}"
         label: "{{ PARTITION_TABLE }}"
-        part_start: "3145728s"
+        part_start: "{{ '4196352s' if DISK[PTUUID]['host_firmware'] == 'efi' else '3147776s' }}"
         part_end: "100%"
         fs_type: "{{ FORMAT_ROOT }}"
         state: present
@@ -447,7 +432,7 @@
         state: directory
       when:
         - FULL_INSTALL or DEBUG_MOUNTS
-        - DISK[PTUUID]['host_firmware'] == "efi"
+        - DISK[PTUUID]['host_firmware'] == 'efi'
       delegate_to: "/"
 
     - name: "Mount {{ EFI_DIR }}"
@@ -1131,8 +1116,8 @@
         quiet: true
         quietbuild: true
         noreplace: false
-	deep: true
-	newuse: true
+        deep: true
+        newuse: true
         package:
           - '@world'
       when: FULL_INSTALL or FULL_REBUILD or DEBUG_KERNEL
