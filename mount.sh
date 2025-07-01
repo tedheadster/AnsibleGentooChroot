@@ -8,9 +8,9 @@ case "${UNAME}" in
     aarch64)
 	DISK="/dev/sda"
 	ROOT=${DISK}4
-	BOOT=${DISK}1
+	BOOT=${DISK}2
 	SWAP=${DISK}3
-	EFI=${DISK}2
+	EFI=${DISK}1
 	;;
 
     i686)
