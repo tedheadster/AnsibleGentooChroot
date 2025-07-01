@@ -447,6 +447,10 @@
         - DISK[PTUUID]['host_firmware'] == 'efi'
       delegate_to: "/"
 
+    - name: "Breakpoint: ansible.builtin.meta: end_play"
+      ansible.builtin.meta: end_play
+      when: DEBUG_BREAK_MOUNTS
+
     - name: "Ensure {{ GENTOO_DIR }}/latest-stage3.txt is absent"
       ansible.builtin.file:
         path: "{{GENTOO_DIR }}/latest-stage3.txt"
