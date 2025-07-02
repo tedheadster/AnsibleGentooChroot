@@ -1,3 +1,5 @@
 - Create solution for installation based on disk PTUUID
 - Create elegant solution for /etc/systemd/network/*.network files
 - Create logrotate.service in systemd
+- Create /etc/chrony/chrony.conf
+- Create /etc/hosts.merge
