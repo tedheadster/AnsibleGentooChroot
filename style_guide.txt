@@ -1,0 +1,14 @@
+- Declaration order:
+
+* [tasks]
+  name
+  ${funciton_call}
+  loop
+  when
+  register
+  ignore_errors
+  changed_when
+  tags
+  notify
+  delegate_to
+  
