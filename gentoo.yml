@@ -29,48 +29,60 @@
     - localvars.yml
     - settings.yml
 
-  handlers:
-    - name: SyncDisks
-      ansible.builtin.command: "{{ SYNC }}"
-
   tasks:
     - name: "Gather facts in hosting system"
       ansible.builtin.gather_facts:
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Get PTUUID for {{ MAIN_DISK }}"
       ansible.builtin.command: "{{ BASH }} -c '{{ BLKID }} --match-tag PTUUID --output value {{ MAIN_DISK }}'"
       register: DISK_BLKID
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Assign PTUUID"
       ansible.builtin.set_fact:
         PTUUID: "{{ DISK_BLKID.stdout }}"
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Set EFI_ID"
       ansible.builtin.set_fact:
         EFI_ID: "{{ '1' if DISK[PTUUID]['host_firmware'] == 'efi' else '' }}"
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Set BOOT_ID"
       ansible.builtin.set_fact:
         BOOT_ID: "{{ '2' if DISK[PTUUID]['host_firmware'] == 'efi' else '1' }}"
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Set SWAP_ID"
       ansible.builtin.set_fact:
         SWAP_ID: "{{ '3' if DISK[PTUUID]['host_firmware'] == 'efi' else '2' }}"
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Set ROOT_ID"
       ansible.builtin.set_fact:
         ROOT_ID: "{{ '4' if DISK[PTUUID]['host_firmware'] == 'efi' else '3' }}"
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Set GENTOO_MIRRORS_URL"
       ansible.builtin.set_fact:
         GENTOO_MIRRORS_URL: "{{ GENTOO_MIRRORS + '/releases/' + DISK[PTUUID]['arch_major'] + '/autobuilds/current-stage3-' + DISK[PTUUID]['arch_minor'] + '-' + DISK[PTUUID]['gentoo_stage3_choice'] }}"
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Print user configured variables set in settings.yml"
@@ -94,11 +106,15 @@
         - "CHOST: {{ DISK[PTUUID]['chost'] }} ( Used by /etc/portage/make.conf for what type of system to build )"
         - "HOST_FIRMWARE: {{ DISK[PTUUID]['host_firmware'] }} ( Can be either 'bios' or 'efi' )"
         - "NUM_CPUS: {{ DISK[PTUUID]['num_cpus'] }} ( Used by make for builds started in parallel )"
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Pause playbook"
       ansible.builtin.pause:
         seconds: 15
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Validate Gentoo Mirror Reachability"
@@ -111,84 +127,107 @@
         - name: "Downloading {{ GENTOO_MIRRORS_URL }} page failed"
           ansible.builtin.fail:
             msg: "ERROR: Gentoo mirror {{ GENTOO_MIRRORS_URL }} page is unreachable. Please check your settings."
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Disable swap on {{ MAIN_DISK }}{{ SWAP_ID }}"
       ansible.builtin.command: "{{ SWAPOFF }} {{ MAIN_DISK }}{{ SWAP_ID }}"
-      changed_when: true
       ignore_errors: true
-      when: FULL_INSTALL or DEBUG_SWAP
+      changed_when: true
+      tags:
+        - full_install
+        - debug_swap
       delegate_to: "/"
 
     - name: "Unmount {{ GENTOO_DIR }}/run"
       ansible.posix.mount:
         path: "{{ GENTOO_DIR }}/run"
         state: unmounted
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
     - name: "Unmount {{ GENTOO_DIR }}/proc"
       ansible.posix.mount:
         path: "{{ GENTOO_DIR }}/proc"
         state: unmounted
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
 # We have to use the command line 'umount -R' because ansible.posix.mount
 # with "state: unmounted" fails for --rbind with --make-rslave mounts
     - name: "Unmount {{ GENTOO_DIR }}/sys"
       ansible.builtin.command: "{{ UMOUNT }} -R {{ GENTOO_DIR }}/sys"
-      changed_when: true
       ignore_errors: true
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      changed_when: true
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
 # We have to use the command line 'umount -R' because ansible.posix.mount
 # with "state: unmounted" fails for --rbind with --make-rslave mounts
     - name: "Unmount {{ GENTOO_DIR }}/dev"
       ansible.builtin.command: "{{ UMOUNT }} -R {{ GENTOO_DIR }}/dev"
-      changed_when: true          
       ignore_errors: true
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      changed_when: true          
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
     - name: "Detect all mounted partitions on {{ MAIN_DISK }}"
       ansible.builtin.shell: |
         {{ LSBLK }} -n -o MOUNTPOINTS {{ MAIN_DISK }} | {{ GREP }} -v '^$' || true
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
       register: mounted_points
       changed_when: false
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
     - name: "Unmount all detected mounts"
       ansible.builtin.command: "{{ UMOUNT }} -R {{ item }}"
       loop: "{{ mounted_points.stdout_lines }}"
-      ignore_errors: true
       when:
         - mounted_points.stdout_lines | length > 0
-        - FULL_INSTALL or DEBUG_MOUNTS
       ignore_errors: true
       changed_when: false
+      tags:
+        - full_install
+        - debug_mounts
       delegate_to: "/"
 
     - name: "Get RAM size in MiB"
       ansible.builtin.set_fact:
         ram_mb: "{{ ansible_facts['memtotal_mb'] }}"
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Get disk size in GiB"
       ansible.builtin.set_fact:
         disk_size_gb: "{{ (ansible_facts['devices'][ MAIN_DISK | basename ]['sectors'] | int * 512 / (1024*1024*1024)) | int }}"
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Print memory and disk size"
       ansible.builtin.debug:
         msg: "Disk: {{ disk_size_gb }}GiB Memory: {{ ram_mb }}MiB"
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Calculate swap size"
       ansible.builtin.set_fact:
         swap_size_gb: 1 | int
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Get existing partitions"
@@ -196,6 +235,8 @@
         device: "{{ MAIN_DISK }}"
         unit: "MiB"
       register: MAIN_DISK_INFO
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Wipe existing partitions"
@@ -204,20 +245,24 @@
         number: "{{ item.num }}"
         state: absent
       loop: "{{ MAIN_DISK_INFO.partitions }}"
-      when: FULL_INSTALL
       changed_when: true
+      tags:
+        - full_install
       delegate_to: "/"
 
     - name: "Sync on-disk partition table and kernel for  {{ MAIN_DISK }}"
       ansible.builtin.command: "{{ PARTPROBE }} {{ MAIN_DISK }}"
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Create {{ PARTITION_TABLE }} partition table"
       community.general.parted:
         device: "{{ MAIN_DISK }}"
         label: "{{ PARTITION_TABLE }}"
-      when: FULL_INSTALL
       changed_when: true
+      tags:
+        - full_install
       delegate_to: "/"
 
     - name: "Create EFI partition"
@@ -232,24 +277,31 @@
           - 'boot'
           - 'esp'
         state: present
-      when: FULL_INSTALL and DISK[PTUUID]['host_firmware'] == 'efi'
+      when:
+        - DISK[PTUUID]['host_firmware'] == 'efi'
       changed_when: true 
+      tags:
+        - full_install
       delegate_to: "/"
 
     - name: "Get EFI partition PARTUUID_EFI_INFO"
       ansible.builtin.command: "{{ BASH }} -c '{{ LSBLK }} --noheadings --output PARTUUID {{ MAIN_DISK }}{{ EFI_ID }}'"
-      register: PARTUUID_EFI_INFO
       when:
-        - FULL_INSTALL or DEBUG_PARTUUID
         - DISK[PTUUID]['host_firmware'] == 'efi'
+      register: PARTUUID_EFI_INFO
+      tags:
+        - full_install
+        - debug_partuuid
       delegate_to: "/"
 
     - name: "Set EFI partition PARTUUID_EFI"
       ansible.builtin.set_fact:
         PARTUUID_EFI: "{{ PARTUUID_EFI_INFO.stdout }}"
       when:
-        - FULL_INSTALL or DEBUG_PARTUUID
         - DISK[PTUUID]['host_firmware'] == 'efi'
+      tags:
+        - full_install
+        - debug_partuuid
       delegate_to: "/"
 
     - name: "Create boot partition"
@@ -261,22 +313,25 @@
         part_end: "{{ '2099199s' if DISK[PTUUID]['host_firmware'] == 'efi' else '1050623s' }}"
         fs_type: "{{ FORMAT_BOOT }}"
         state: present
-      when: FULL_INSTALL
       changed_when: true 
+      tags:
+        - full_install
       delegate_to: "/"
 
     - name: "Get boot partition PARTUUID_BOOT_INFO"
       ansible.builtin.command: "{{ BASH }} -c '{{ LSBLK }} --noheadings --output PARTUUID {{ MAIN_DISK }}{{ BOOT_ID }}'"
       register: PARTUUID_BOOT_INFO
-      when:
-        - FULL_INSTALL or DEBUG_PARTUUID
+      tags:
+        - full_install
+        - debug_partuuid
       delegate_to: "/"
 
     - name: "Set boot partition PARTUUID_BOOT"
       ansible.builtin.set_fact:
         PARTUUID_BOOT: "{{ PARTUUID_BOOT_INFO.stdout }}"
-      when:
-        - FULL_INSTALL or DEBUG_PARTUUID
+      tags:
+        - full_install
+        - debug_partuuid
       delegate_to: "/"
 
     - name: "Create swap partition"
@@ -290,22 +345,25 @@
         flags:
           - "swap"
         state: present
-      when: FULL_INSTALL
       changed_when: true 
+      tags:
+        - full_install
       delegate_to: "/"
 
     - name: "Get swap partition PARTUUID_SWAP_INFO"
       ansible.builtin.command: "{{ BASH }} -c '{{ LSBLK }} --noheadings --output PARTUUID {{ MAIN_DISK }}{{ SWAP_ID }}'"
       register: PARTUUID_SWAP_INFO
-      when:
-        - FULL_INSTALL or DEBUG_PARTUUID
+      tags:
+        - full_install
+        - debug_partuuid
       delegate_to: "/"
 
     - name: "Set swap partition PARTUUID_SWAP"
       ansible.builtin.set_fact:
         PARTUUID_SWAP: "{{ PARTUUID_SWAP_INFO.stdout }}"
-      when:
-        - FULL_INSTALL or DEBUG_PARTUUID
+      tags:
+        - full_install
+        - debug_partuuid
       delegate_to: "/"
 
     - name: "Create root partition"
@@ -317,26 +375,31 @@
         part_end: "100%"
         fs_type: "{{ FORMAT_ROOT }}"
         state: present
-      when: FULL_INSTALL
       changed_when: true 
+      tags:
+        - full_install
       delegate_to: "/"
 
     - name: "Get root partition PARTUUID_ROOT_INFO"
       ansible.builtin.command: "{{ BASH }} -c '{{ LSBLK }} --noheadings --output PARTUUID {{ MAIN_DISK }}{{ ROOT_ID }}'"
       register: PARTUUID_ROOT_INFO
-      when:
-        - FULL_INSTALL or DEBUG_PARTUUID
+      tags:
+        - full_install
+        - debug_partuuid
       delegate_to: "/"
 
     - name: "Set root partition PARTUUID_ROOT"
       ansible.builtin.set_fact:
         PARTUUID_ROOT: "{{ PARTUUID_ROOT_INFO.stdout }}"
-      when:
-        - FULL_INSTALL or DEBUG_PARTUUID
+      tags:
+        - full_install
+        - debug_partuuid
       delegate_to: "/"
 
     - name: "Sync on-disk partition table and kernel for  {{ MAIN_DISK }}"
       ansible.builtin.command: "{{ PARTPROBE }} {{ MAIN_DISK }}"
+      tags:
+        - always
       delegate_to: "/"
 
     - name: "Format EFI partition ({{ FSTYPE_EFI }})"
@@ -345,8 +408,11 @@
         dev: "{{ MAIN_DISK }}{{ EFI_ID }}"
         opts: "{{ FSTYPE_EFI_OPTS }}"
         force: true
-      when: FULL_INSTALL and DISK[PTUUID]['host_firmware'] == 'efi'
+      when:
+        - DISK[PTUUID]['host_firmware'] == 'efi'
       changed_when: true
+      tags:
+        - full_install
       notify: SyncDisks
       delegate_to: "/"
 
@@ -356,8 +422,9 @@
         dev: "{{ MAIN_DISK }}{{ BOOT_ID }}"
         opts: "{{ FSTYPE_BOOT_OPTS }}"
         force: true
-      when: FULL_INSTALL
       changed_when: true
+      tags:
+        - full_install
       notify: SyncDisks
       delegate_to: "/"
 
@@ -367,8 +434,9 @@
         dev: "{{ MAIN_DISK }}{{ SWAP_ID }}"
         opts: "{{ FSTYPE_SWAP_OPTS }}"
         force: true
-      when: FULL_INSTALL
       changed_when: true
+      tags:
+        - full_install
       notify: SyncDisks
       delegate_to: "/"
 
@@ -378,23 +446,28 @@
         dev: "{{ MAIN_DISK }}{{ ROOT_ID }}"
         opts: "{{ FSTYPE_ROOT_OPTS }}"
         force: true
-      when: FULL_INSTALL
       changed_when: true
+      tags:
+        - full_install
       notify: SyncDisks
       delegate_to: "/"
 
     - name: "Enable swap on {{ MAIN_DISK }}{{ SWAP_ID }}"
       ansible.builtin.command: "{{ SWAPON }} {{ MAIN_DISK }}{{ SWAP_ID }}"
-      when: FULL_INSTALL or DEBUG_SWAP
       changed_when: true
+      tags:
+        - full_install
+        - debug_swap
       delegate_to: "/"
 
-    - name: "Ensure {{ GENTOO_DIR }} exists"
+    - name: "Ensure {{ GENTOO_DIR }} directory exists"
       ansible.builtin.file:
         path: "{{ GENTOO_DIR }}"
         state: directory
         mode: '0755'
-      when: FULL_INSTALL or DEBUG_MOUNTS
+      tags:
+        - full_install
+        - debug_mounts
       delegate_to: "/"
 
     - name: "Mount {{ GENTOO_DIR }}"
@@ -406,14 +479,18 @@
         state: mounted
         boot: false
         opts: noauto
-      when: FULL_INSTALL or DEBUG_MOUNTS
+      tags:
+        - full_install
+        - debug_mounts
       delegate_to: "/"
 
-    - name: "Ensure {{ BOOT_DIR }} exists"
+    - name: "Ensure {{ BOOT_DIR }} directory exists"
       ansible.builtin.file:
         path: "{{ BOOT_DIR }}"
         state: directory
-      when: FULL_INSTALL or DEBUG_MOUNTS
+      tags:
+        - full_install
+        - debug_mounts
       delegate_to: "/"
 
     - name: "Mount {{ BOOT_DIR }}"
@@ -423,16 +500,20 @@
         fstype: "{{ FSTYPE_BOOT }}"
         fstab: "/tmp/fstab.ignore"
         state: mounted
-      when: FULL_INSTALL or DEBUG_MOUNTS
+      tags:
+        - full_install
+        - debug_mounts
       delegate_to: "/"
 
-    - name: "Ensure {{ EFI_DIR }} exists"
+    - name: "Ensure {{ EFI_DIR }} directory exists"
       ansible.builtin.file:
         path: "{{ EFI_DIR }}"
         state: directory
       when:
-        - FULL_INSTALL or DEBUG_MOUNTS
         - DISK[PTUUID]['host_firmware'] == 'efi'
+      tags:
+        - full_install
+        - debug_mounts
       delegate_to: "/"
 
     - name: "Mount {{ EFI_DIR }}"
@@ -443,53 +524,63 @@
         fstab: "/tmp/fstab.ignore"
         state: mounted
       when:
-        - FULL_INSTALL or DEBUG_MOUNTS
         - DISK[PTUUID]['host_firmware'] == 'efi'
+      tags:
+        - full_install
+        - debug_mounts
       delegate_to: "/"
-
-    - name: "Breakpoint: ansible.builtin.meta: end_play"
-      ansible.builtin.meta: end_play
-      when: DEBUG_BREAK_MOUNTS
 
     - name: "Ensure {{ GENTOO_DIR }}/latest-stage3.txt is absent"
       ansible.builtin.file:
         path: "{{GENTOO_DIR }}/latest-stage3.txt"
         state: absent
-      when: FULL_INSTALL or DEBUG_STAGE3
+      tags:
+        - full_install
+        - debug_stage3
       delegate_to: "/"
 
     - name: "Download latest stage3 file list to {{ GENTOO_DIR }}/latest-stage3.txt"
       ansible.builtin.get_url:
         url: "{{ GENTOO_MIRRORS_URL }}/latest-stage3-{{ DISK[PTUUID]['arch_minor'] }}-{{ DISK[PTUUID]['gentoo_stage3_choice'] }}.txt"
         dest: "{{ GENTOO_DIR }}/latest-stage3.txt"
-      when: FULL_INSTALL or DEBUG_STAGE3
+      tags:
+        - full_install
+        - debug_stage3
       delegate_to: "/"
 
     - name: "Extract tarfile stage3_filename"
       ansible.builtin.shell: "{{ GREP }} -Eo 'stage3-{{ DISK[PTUUID]['arch_minor'] }}-{{ DISK[PTUUID]['gentoo_stage3_choice'] }}-[0-9TZ]+.tar.xz' {{ GENTOO_DIR }}/latest-stage3.txt"
       register: stage3_filename
       changed_when: false
-      when: FULL_INSTALL or DEBUG_STAGE3
+      tags:
+        - full_install
+        - debug_stage3
       delegate_to: "/"
 
     - name: "Print tarfile stage3_filename"
       ansible.builtin.debug:
         msg: "stage3_filename: {{ stage3_filename.stdout }}"
-      when: FULL_INSTALL or DEBUG_STAGE3
+      tags:
+        - full_install
+        - debug_stage3
       delegate_to: "/"
 
     - name: "Ensure {{ GENTOO_DIR }}/{{ stage3_filename.stdout }} is absent"
       ansible.builtin.file:
         path: "{{GENTOO_DIR }}/{{ stage3_filename.stdout }}"
         state: absent
-      when: FULL_INSTALL or DEBUG_STAGE3
+      tags:
+        - full_install
+        - debug_stage3
       delegate_to: "/"
 
     - name: "Download the latest stage3 tarball to {{ GENTOO_DIR }}/{{ stage3_filename.stdout }}"
       ansible.builtin.get_url:
         url: "{{ GENTOO_MIRRORS_URL }}/{{ stage3_filename.stdout }}"
         dest: "{{ GENTOO_DIR }}/{{ stage3_filename.stdout }}"
-      when: FULL_INSTALL or DEBUG_STAGE3
+      tags:
+        - full_install
+        - debug_stage3
       delegate_to: "/"
 
     - name: "Extract stage3 tarball {{ GENTOO_DIR }}/{{ stage3_filename.stdout }}"
@@ -499,74 +590,96 @@
         extra_opts:
           - "--xattrs-include='*.*'"
           - "--numeric-owner"
-      when: FULL_INSTALL or DEBUG_STAGE3
       changed_when: true
+      tags:
+        - full_install
+        - debug_stage3
       notify: SyncDisks
       delegate_to: "/"
 
-    - name: "Ensure {{ GENTOO_DIR }}/dev exists"
+    - name: "Ensure {{ GENTOO_DIR }}/dev directory exists"
       ansible.builtin.file:
         path: "{{ GENTOO_DIR }}/dev"
         state: directory
         mode: '0755'
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
     - name: "Mount {{ GENTOO_DIR }}/dev rbind"
       ansible.builtin.command: "{{ MOUNT }} --rbind /dev {{ GENTOO_DIR }}/dev"
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
     - name: "Mount {{ GENTOO_DIR }}/dev rslave"
       ansible.builtin.command: "{{ MOUNT }} --make-rslave {{ GENTOO_DIR }}/dev"
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
-    - name: "Ensure {{ GENTOO_DIR }}/sys exists"
+    - name: "Ensure {{ GENTOO_DIR }}/sys directory exists"
       ansible.builtin.file:
         path: "{{ GENTOO_DIR }}/sys"
         state: directory
         mode: '0755'
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
     - name: "Mount {{ GENTOO_DIR }}/sys rbind"
       ansible.builtin.command: "{{ MOUNT }} --rbind /sys {{ GENTOO_DIR }}/sys"
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
     - name: "Mount {{ GENTOO_DIR }}/sys rslave"
       ansible.builtin.command: "{{ MOUNT }} --make-rslave {{ GENTOO_DIR }}/sys"
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
-    - name: "Ensure {{ GENTOO_DIR }}/proc exists"
-      file:
+    - name: "Ensure {{ GENTOO_DIR }}/proc directory exists"
+      ansible.builtin.file:
         path: "{{ GENTOO_DIR }}/proc"
         state: directory
         mode: '0755'
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
     - name: "Mount {{ GENTOO_DIR }}/proc"
       ansible.builtin.command: "{{ MOUNT }} --type proc /proc {{ GENTOO_DIR }}/proc"
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
-    - name: "Ensure {{ GENTOO_DIR }}/run exists"
+    - name: "Ensure {{ GENTOO_DIR }}/run directory exists"
       ansible.builtin.file:
         path: "{{ GENTOO_DIR }}/run"
         state: directory
         mode: '0755'
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
     - name: "Mount {{ GENTOO_DIR }}/run"
       ansible.builtin.command: "{{ MOUNT }} -o bind /run {{ GENTOO_DIR }}/run"
-      when: FULL_INSTALL or DEBUG_MOUNTS_SPECIAL
+      tags:
+        - full_install
+        - debug_mounts_special
       delegate_to: "/"
 
-    - name: "Copy resolv.conf"
+    - name: "Generate new {{ GENTOO_DIR }}/etc/resolv.conf"
       ansible.builtin.copy:
         remote_src: true
         src: '/etc/resolv.conf'
@@ -575,9 +688,10 @@
         group: root
         mode: '0664'
         follow: true
+      tags:
+        - always
       delegate_to: "/"
 
-# fstab entries were created for /boot and /efi above, need to manually add root and swap
     - name: "Write fstab for 'bios' systems"
       ansible.posix.mount:
         fstab: "/etc/fstab"
@@ -592,8 +706,10 @@
         - { path: "none", src: "PARTUUID={{ PARTUUID_SWAP }}", fstype: "{{ FSTYPE_SWAP }}", opts: "sw" }
         - { path: "/boot", src: "PARTUUID={{ PARTUUID_BOOT }}", fstype: "{{ FSTYPE_BOOT }}", opts: "noatime" }
       when:
-        - FULL_INSTALL or DEBUG_FSTAB
         - DISK[PTUUID]['host_firmware'] == 'bios'
+      tags:
+        - full_install
+        - debug_fstab
 
     - name: "Write fstab for 'efi' systems"
       ansible.posix.mount:
@@ -610,14 +726,18 @@
         - { path: "/boot", src: "PARTUUID={{ PARTUUID_BOOT }}", fstype: "{{ FSTYPE_BOOT }}", opts: "noatime" }
         - { path: "/boot/efi", src: "PARTUUID={{ PARTUUID_EFI }}", fstype: "{{ FSTYPE_EFI }}", opts: "noatime" }
       when:
-        - FULL_INSTALL or DEBUG_FSTAB
         - DISK[PTUUID]['host_firmware'] == 'efi'
+      tags:
+        - full_install
+        - debug_fstab
 
-    - name: "Ensure {{ PORTAGE_DIR }} exists"
+    - name: "Ensure {{ PORTAGE_DIR }} directory exists"
       ansible.builtin.file:
         path: "{{ PORTAGE_DIR }}"
         state: directory
         mode: '0755'
+      tags:
+        - always
 
     - name: "Generate new {{ PORTAGE_DIR }}/make.conf to configure portage environment"
       ansible.builtin.copy:
@@ -661,18 +781,24 @@
            GCC_COLORS=""
            GENTOO_MIRRORS="{{ GENTOO_MIRRORS }}"
       changed_when: true
+      tags:
+        - always
 
     - name: "Synchronize portage repository"
       community.general.portage:
         sync: true
         noreplace: false
-      when: FULL_INSTALL or DEBUG_WEBRSYNC
       changed_when: true
+      tags:
+        - full_install
+        - debug_webrsync
       notify: SyncDisks
 
     - name: "Set gentoo profile to {{ DISK[PTUUID]['gentoo_profile_menu'] }}"
       ansible.builtin.command: "{{ BASH }} -c '{{ ENV_UPDATE }} && source /etc/profile; {{ ESELECT }} profile set {{ DISK[PTUUID]['gentoo_profile_menu'] }}'"
       changed_when: true
+      tags:
+        - always
 
     - name: "Generate new {{ PORTAGE_DIR }}/package.license to allow non-free firmware licenses"
       ansible.builtin.copy:
@@ -690,6 +816,8 @@
            =sys-kernel/linux-firmware-{{ LINUX_FIRMWARE }} linux-firmware-redistributable no-source-code
            =sys-kernel/linux-firmware-20250311 linux-firmware-redistributable no-source-code
            =sys-kernel/linux-firmware-20250211 linux-firmware-redistributable no-source-code
+      tags:
+        - always
 
     - name: "Generate new /etc/locale.gen to set the locale"
       ansible.builtin.copy:
@@ -726,22 +854,32 @@
            #fr_FR ISO-8859-1
            #fr_FR@euro ISO-8859-15
            #it_IT ISO-8859-1
+      tags:
+        - always
 
     - name: "Build locale database"
       ansible.builtin.command: "{{ BASH }} -c '{{ ENV_UPDATE }} && source /etc/profile; {{ LOCALE_GEN }}'"
       changed_when: true
+      tags:
+        - always
 
     - name: "Set the systemd locale to {{ SYSTEMD_LOCALE }}"
       ansible.builtin.command: "{{ BASH }} -c '{{ ENV_UPDATE }} && source /etc/profile; {{ LOCALECTL }} set-locale LANG={{ SYSTEMD_LOCALE }} ; {{ LOCALECTL }} set-locale LC_CTYPE={{ SYSTEMD_LOCALE }} ; {{ LOCALECTL }} set-locale LC_MESSAGES={{ SYSTEMD_LOCALE }} ; {{ ENV_UPDATE }}'"
       changed_when: true
+      tags:
+        - always
 
     - name: "Update the environment"
       ansible.builtin.command: "{{ BASH }} -c '{{ ENV_UPDATE }} && source /etc/profile'"
       changed_when: true
+      tags:
+        - always
 
     - name: "Reset the news"
       ansible.builtin.command: "{{ BASH }} -c '{{ ENV_UPDATE }} && source /etc/profile; {{ ESELECT }} news read'"
       changed_when: true
+      tags:
+        - always
 
     - name: "Generate new /etc/timezone to set the time zone"
       ansible.builtin.copy:
@@ -754,9 +892,13 @@
            # Ansible install {{ ansible_date_time.iso8601_basic_short }}
            #
            UTC
+      tags:
+        - always
 
     - name: "Configure sys-libs/timezone-data"
       ansible.builtin.command: "{{ BASH }} -c '{{ ENV_UPDATE }} && source /etc/profile; {{ EMERGE_COMMAND }} --config sys-libs/timezone-data'"
+      tags:
+        - always
 
     - name: "Install sys-devel/binutils sys-devel/gcc"
       community.general.portage:
@@ -767,17 +909,22 @@
         package:
           - sys-devel/binutils
           - sys-devel/gcc
-      when: FULL_INSTALL or FULL_REBUILD or DEBUG_DEBUGEDIT
       changed_when: true
+      tags:
+        - full_install
+        - full_rebuild
+        - debug_debugedit
       notify: SyncDisks
 
-    - name: "Ensure {{ PORTAGE_DIR }}/env exists"
+    - name: "Ensure {{ PORTAGE_DIR }}/env directory exists"
       ansible.builtin.file:
         path: "{{ PORTAGE_DIR }}/env"
         state: directory
         owner: root
         group: root
         mode: '0755'
+      tags:
+        - always
 
     - name: "Generate new {{ PORTAGE_DIR }}/env/simpledebug for problem packages"
       ansible.builtin.copy:
@@ -796,6 +943,8 @@
            FCFLAGS="${COMMON_FLAGS}"
            FFLAGS="${COMMON_FLAGS}"
            FEATURES="${FEATURES} -nostrip"
+      tags:
+        - always
 
     - name: "Generate new (bootstrap) {{ PORTAGE_DIR }}/package.env for source code and debugging information"
       ansible.builtin.copy:
@@ -809,6 +958,8 @@
            #
            dev-util/debugedit simpledebug
            dev-libs/xxhash simpledebug
+      tags:
+        - always
 
 # Build dev-util/debugedit when a fix comes out. Otherwise, manually do this:
 # emerge --color n --ask --buildpkg dev-libs/xxhash dev-libs/elfutils sys-devel/dwz
@@ -825,8 +976,11 @@
         noreplace: false
         package:
           - dev-util/debugedit
-      when: FULL_INSTALL or FULL_REBUILD or DEBUG_DEBUGEDIT
       changed_when: true
+      tags:
+        - full_install
+        - full_rebuild
+        - debug_debugedit
       notify: SyncDisks
 
     - name: "Generate new {{ PORTAGE_DIR }}/env/debugsyms for debugging information"
@@ -843,6 +997,8 @@
            CXXFLAGS="${CXXFLAGS} -ggdb -g3"
            LDFLAGS="${LDFLAGS} -ggdb -g3"
            FEATURES="${FEATURES} splitdebug -nostrip"
+      tags:
+        - always
 
     - name: "Generate new {{ PORTAGE_DIR }}/env/installsources for source code"
       ansible.builtin.copy:
@@ -855,6 +1011,8 @@
            # Ansible install {{ ansible_date_time.iso8601_basic_short }}
            #
            FEATURES="${FEATURES} installsources"
+      tags:
+        - always
 
     - name: "Generate new (production) {{ PORTAGE_DIR }}/package.env for source code and debugging information"
       ansible.builtin.copy:
@@ -869,6 +1027,8 @@
            */* debugsyms installsources
            dev-util/debugedit simpledebug
            dev-libs/xxhash simpledebug
+      tags:
+        - always
 
     - name: "Ensure {{ PORTAGE_DIR }}/package.use directory exists"
       ansible.builtin.file:
@@ -877,8 +1037,10 @@
         owner: root
         group: root
         mode: '0755'
+      tags:
+        - always
 
-    - name: "Generate new {{ PORTAGE_DIR }}/package.use files"
+    - name: "Generate new {{ PORTAGE_DIR }}/package.use/*.use files"
       ansible.builtin.copy:
         owner: root
         group: root
@@ -900,8 +1062,10 @@
         - { arch: "x86", package: "*/*", filename: "abi", use: "abi_x86_32 abi_x86_x32 -abi_x86_64" }
         - { arch: "amd64", package: "*/*", filename: "abi", use: "abi_x86_64 -abi_x86_32 -abi_x86_x32" }
       when: item.arch == DISK[PTUUID]['arch_major'] or item.arch == 'all'
+      tags:
+        - always
 
-    - name: "Generate new {{ PORTAGE_DIR }}/package.use CPU specific files"
+    - name: "Generate new {{ PORTAGE_DIR }}/package.use/*.use CPU specific files"
       ansible.builtin.copy:
         owner: root
         group: root
@@ -916,7 +1080,11 @@
         - { arch_minor: "i486", arch_model: "pentium", package: "*/*", filename: "cpu-flags", use: "CPU_FLAGS_X86: fpu vme de pse tsc msr mce cx8" }
         - { arch_minor: "i486", arch_model: "pentium-mmx", package: "*/*", filename: "cpu-flags", use: "CPU_FLAGS_X86: fpu vme de pse tsc msr mce cx8 mmx" }
         - { arch_minor: "amd64", arch_model: "amd64", package: "*/*", filename: "cpu-flags", use: "CPU_FLAGS_X86: aes avx avx2 f16c fma3 mmx mmxext pclmul popcnt rdrand sse sse2 sse3 sse4_1 sse4_2 ssse3" }
-      when: item.arch_minor == DISK[PTUUID]['arch_minor'] and item.arch_model == DISK[PTUUID]['arch_model']
+      when:
+        - item.arch_minor == DISK[PTUUID]['arch_minor']
+        - item.arch_model == DISK[PTUUID]['arch_model']
+      tags:
+        - always
 
     - name: "Ensure {{ PORTAGE_DIR }}/package.accept_keywords directory exists"
       ansible.builtin.file:
@@ -925,8 +1093,10 @@
         owner: root
         group: root
         mode: '0755'
+      tags:
+        - always
 
-    - name: "Generate new {{ PORTAGE_DIR }}/package.accept_keywords files"
+    - name: "Generate new {{ PORTAGE_DIR }}/package.accept_keywords/ files"
       ansible.builtin.copy:
         owner: root
         group: root
@@ -941,7 +1111,10 @@
         - { arch: "arm64", package: "app-arch/dump", filename: "dump", accept_keywords: "**" }
         - { arch: "arm64", package: "dev-debug/ltrace", filename: "ltrace", accept_keywords: "**" }
         - { arch: "x86", package: "dev-util/github-cli", filename: "github-cli", accept_keywords: "**" }
-      when: item.arch == DISK[PTUUID]['arch_major'] or item.arch == 'all'
+      when:
+        - item.arch == DISK[PTUUID]['arch_major'] or item.arch == 'all'
+      tags:
+        - always
 
     - name: "Rebuild all packages except sys-devel/binutils, sys-devel/gcc, sys-libs/glibc, and sys-apps/systemd"
       community.general.portage:
@@ -956,8 +1129,10 @@
           - "--exclude=sys-devel/gcc"
           - "--exclude=sys-libs/glibc"
           - "--exclude=sys-apps/systemd"
-      when: FULL_REBUILD or DEBUG_GENERAL_PACKAGES
       changed_when: true
+      tags:
+        - full_rebuild
+        - debug_general_packages
       notify: SyncDisks
 
     - name: "Build additional packages list"
@@ -1004,7 +1179,10 @@
         - { arch: "amd64", package: "sys-firmware/intel-microcode" }
         - { arch: "x86", package: "sys-apps/cpuid" }
         - { arch: "x86", package: "sys-firmware/intel-microcode" }
-      when: item.arch == DISK[PTUUID]['arch_major'] or item.arch == 'all'
+      when:
+        - item.arch == DISK[PTUUID]['arch_major'] or item.arch == 'all'
+      tags:
+        - always
 
     - name: "Install additional packages"
       community.general.portage:
@@ -1013,8 +1191,11 @@
         quietbuild: true
         noreplace: false
         package: "{{ package_list }}"
-      when: FULL_INSTALL or FULL_REBUILD or DEBUG_ADDITIONAL
       changed_when: true
+      tags:
+        - full_install
+        - full_rebuild
+        - debug_additional
       notify: SyncDisks
 
     - name: "Install sys-kernel/linux-firmware"
@@ -1025,8 +1206,11 @@
         noreplace: false
         package:
           - sys-kernel/linux-firmware
-      when: FULL_INSTALL or FULL_REBUILD or DEBUG_FIRMWARE
       changed_when: true
+      tags:
+        - full_install
+        - full_rebuild
+        - debug_firmware
       notify: SyncDisks
 
     - name: "Rebuild sys-apps/systemd"
@@ -1037,8 +1221,10 @@
         noreplace: false
         package:
           - sys-apps/systemd
-      when: FULL_REBUILD or DEBUG_SYSTEMD
       changed_when: true
+      tags:
+        - full_rebuild
+        - debug_systemd
       notify: SyncDisks
 
     - name: "Rebuild sys-libs/glibc"
@@ -1049,8 +1235,10 @@
         noreplace: false
         package:
           - sys-libs/glibc
-      when: FULL_REBUILD or DEBUG_GLIBC
       changed_when: true
+      tags:
+        - full_rebuild
+        - debug_glibc
       notify: SyncDisks
 
     - name: "Install sys-kernel/installkernel sys-boot/grub"
@@ -1062,33 +1250,42 @@
         package:
           - sys-kernel/installkernel
           - sys-boot/grub
-      when: FULL_INSTALL or FULL_REBUILD or DEBUG_INSTALLKERNEL
       changed_when: true
+      tags:
+        - full_install
+        - full_rebuild
+        - debug_installkernel
       notify: SyncDisks
 
-    - name: "Ensure {{ PORTAGE_DIR }}/savedconfig exists"
+    - name: "Ensure {{ PORTAGE_DIR }}/savedconfig directory exists"
       ansible.builtin.file:
         path: "{{ PORTAGE_DIR }}/savedconfig"
         state: directory
         owner: root
         group: root
         mode: '0755'
+      tags:
+        - always
 
-    - name: "Ensure {{ PORTAGE_DIR }}/savedconfig/sys-kernel exists"
+    - name: "Ensure {{ PORTAGE_DIR }}/savedconfig/sys-kernel directory exists"
       ansible.builtin.file:
         path: "{{ PORTAGE_DIR }}/savedconfig/sys-kernel"
         state: directory
         owner: root
         group: root
         mode: '0755'
+      tags:
+        - always
 
-    - name: "Ensure {{ PORTAGE_DIR }}/savedconfig/sys-kernel/gentoo-kernel"
+    - name: "Ensure {{ PORTAGE_DIR }}/savedconfig/sys-kernel/gentoo-kernel directory exists"
       ansible.builtin.file:
         path: "{{ PORTAGE_DIR }}/savedconfig/sys-kernel/gentoo-kernel"
         state: directory
         owner: root
         group: root
         mode: '0755'
+      tags:
+        - always
 
     - name: "Install sys-kernel/gentoo-kernel sys-kernel/gentoo-sources"
       community.general.portage:
@@ -1099,19 +1296,26 @@
         package:
           - sys-kernel/gentoo-kernel
           - sys-kernel/gentoo-sources
-      when: FULL_INSTALL or FULL_REBUILD or DEBUG_KERNEL
       changed_when: true
+      tags:
+        - full_install
+        - full_rebuild
+        - debug_kernel
       notify: SyncDisks
 
     - name: "Install GRUB bootloader"
       ansible.builtin.command: "{{ BASH }} -c '{{ GRUB_INSTALL }} {{ MAIN_DISK }}'"
       register: grub_result
       changed_when: true
+      tags:
+        - always
       notify: SyncDisks
 
     - name: "Print GRUB results"
       ansible.builtin.debug:
         msg: "{{ grub_result }}"
+      tags:
+        - always
 
     - name: "Install any updated packages"
       community.general.portage:
@@ -1124,12 +1328,17 @@
         newuse: true
         package:
           - '@world'
-      when: FULL_INSTALL or FULL_REBUILD or DEBUG_KERNEL
       changed_when: true
+      tags:
+        - full_install
+        - full_rebuild
+        - debug_kernel
       notify: SyncDisks
 
     - name: "Create unique /etc/machine-id"
       ansible.builtin.command: "{{ BASH }} -c '{{ SYSTEMD_MACHINE_ID_SETUP }}'"
+      tags:
+        - always
 
     - name: "Create users"
       ansible.builtin.user:
@@ -1141,6 +1350,8 @@
       loop:
         - { username: "root" , pwhash: "$6$o46vvOu8MxLj2fQQ$MPO2Xtp9Ukd7FgleZgYUtgh9T1KlBfH0BIHKncFpi9CT5MgdVUB36nZalZIdj6jnHOeHpt/NJ3kchi45RSAA3." , groups: "wheel" }
         - { username: "mrw" , pwhash: "$6$LCkVKX701Wy.OHmM$TvS26yA0u8IF/XV09GmRYcKuo46Bqf0l48zH7BZZsbZcZ6zg6QCBhi9SyjnmezTT.WXqkkZq27yiR4qx.WCtw/", groups: "users,wheel,audio" }
+      tags:
+        - always
 
     - name: "Generate SSH keys"
       community.crypto.openssh_keypair:
@@ -1150,6 +1361,8 @@
         - { type: "rsa" }
         - { type: "ed25519" }
         - { type: "ecdsa" }
+      tags:
+        - always
 
     - name: "Enable root login via ssh"
       ansible.builtin.lineinfile:
@@ -1157,6 +1370,8 @@
         regexp: '^PermitRootLogin'
         line: 'PermitRootLogin yes'
         state: present
+      tags:
+        - always
 
     - name: "Enable a long DefaultTimeoutStartSec for slow machines"
       ansible.builtin.lineinfile:
@@ -1164,6 +1379,8 @@
         regexp: '^DefaultTimeoutStartSec'
         line: 'DefaultTimeoutStartSec=300s'
         state: present
+      tags:
+        - always
 
     - name: "Enable a long DefaultTimeoutStopSec for slow machines"
       ansible.builtin.lineinfile:
@@ -1171,6 +1388,8 @@
         regexp: '^DefaultTimeoutStopSec'
         line: 'DefaultTimeoutStopSec=300s'
         state: present
+      tags:
+        - always
 
     - name: "Enable daemons"
       ansible.builtin.systemd_service:
@@ -1183,6 +1402,8 @@
         - { service: "sshd.service" }
         - { service: "systemd-networkd.service" }
         - { service: "systemd-resolved.service" }
+      tags:
+        - always
 
     - name: "Generate new /etc/systemd/network/20-wired.network"
       ansible.builtin.copy:
@@ -1201,6 +1422,8 @@
            [Network]
            DHCP=yes
            # End /etc/systemd/network/20-wired.network
+      tags:
+        - always
 
     - name: "Generate new /etc/ptp4l.conf"
       ansible.builtin.copy:
@@ -1218,18 +1441,25 @@
            
            [enp12s0f0np0]
            # End /etc/ptp4l.conf
+      tags:
+        - always
 
     - name: "Disable swap on {{ MAIN_DISK }}{{ SWAP_ID }}"
       ansible.builtin.command: "{{ SWAPOFF }} {{ MAIN_DISK }}{{ SWAP_ID }}"
       ignore_errors: true
-      when: FULL_INSTALL or DEBUG_SWAP or DEBUG_UNMOUNT_ALL
       changed_when: true
+      tags:
+        - full_install
+        - debug_swap
+        - debug_unmount_all
       notify: SyncDisks
       delegate_to: "/"
 
     - name: "Breakpoint: ansible.builtin.meta: end_play"
       ansible.builtin.meta: end_play
       when: true
+      tags:
+        - always
 
 #    - name: "Install cpuid2cpuflags in chroot"
 #      ansible.builtin.command: "{{ CHROOT }} {{ GENTOO_DIR }} {{ BASH }} -c '{{ ENV_UPDATE }} && source /etc/profile; {{ EMERGE_COMMAND }} --quiet app-portage/cpuid2cpuflags'"
@@ -1254,3 +1484,8 @@
 #          127.0.0.1    localhost
 #        state: present
 #
+
+  handlers:
+    - name: SyncDisks
+      ansible.builtin.command: "{{ SYNC }}"
+
