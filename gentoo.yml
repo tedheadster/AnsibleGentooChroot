@@ -914,7 +914,9 @@
         - full_install
         - full_rebuild
         - debug_debugedit
-      notify: SyncDisks
+      notify:
+        - SyncDisks
+        - eClean
 
     - name: "Ensure {{ PORTAGE_DIR }}/env directory exists"
       ansible.builtin.file:
@@ -981,7 +983,9 @@
         - full_install
         - full_rebuild
         - debug_debugedit
-      notify: SyncDisks
+      notify:
+        - SyncDisks
+        - eClean
 
     - name: "Generate new {{ PORTAGE_DIR }}/env/debugsyms for debugging information"
       ansible.builtin.copy:
@@ -1133,7 +1137,9 @@
       tags:
         - full_rebuild
         - debug_general_packages
-      notify: SyncDisks
+      notify:
+        - SyncDisks
+        - eClean
 
     - name: "Build additional packages list"
       ansible.builtin.set_fact:
@@ -1196,7 +1202,9 @@
         - full_install
         - full_rebuild
         - debug_additional
-      notify: SyncDisks
+      notify:
+        - SyncDisks
+        - eClean
 
     - name: "Install sys-kernel/linux-firmware"
       community.general.portage:
@@ -1211,7 +1219,9 @@
         - full_install
         - full_rebuild
         - debug_firmware
-      notify: SyncDisks
+      notify:
+        - SyncDisks
+        - eClean
 
     - name: "Rebuild sys-apps/systemd"
       community.general.portage:
@@ -1225,7 +1235,9 @@
       tags:
         - full_rebuild
         - debug_systemd
-      notify: SyncDisks
+      notify:
+        - SyncDisks
+        - eClean
 
     - name: "Rebuild sys-libs/glibc"
       community.general.portage:
@@ -1239,7 +1251,9 @@
       tags:
         - full_rebuild
         - debug_glibc
-      notify: SyncDisks
+      notify:
+        - SyncDisks
+        - eClean
 
     - name: "Install sys-kernel/installkernel sys-boot/grub"
       community.general.portage:
@@ -1255,7 +1269,9 @@
         - full_install
         - full_rebuild
         - debug_installkernel
-      notify: SyncDisks
+      notify:
+        - SyncDisks
+        - eClean
 
     - name: "Ensure {{ PORTAGE_DIR }}/savedconfig directory exists"
       ansible.builtin.file:
@@ -1301,7 +1317,9 @@
         - full_install
         - full_rebuild
         - debug_kernel
-      notify: SyncDisks
+      notify:
+        - SyncDisks
+        - eClean
 
     - name: "Install GRUB bootloader"
       ansible.builtin.command: "{{ BASH }} -c '{{ GRUB_INSTALL }} {{ MAIN_DISK }}'"
@@ -1333,7 +1351,9 @@
         - full_install
         - full_rebuild
         - debug_kernel
-      notify: SyncDisks
+      notify:
+        - SyncDisks
+        - eClean
 
     - name: "Create unique /etc/machine-id"
       ansible.builtin.command: "{{ BASH }} -c '{{ SYSTEMD_MACHINE_ID_SETUP }}'"
@@ -1488,4 +1508,7 @@
   handlers:
     - name: SyncDisks
       ansible.builtin.command: "{{ SYNC }}"
+
+    - name: eClean
+      ansible.builtin.command: "{{ ECLEAN }} distfiles ; {{ ECLEAN }} packages"
 
