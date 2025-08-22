@@ -187,7 +187,7 @@
       changed_when: false
       tags:
         - full_install
-        - debug_mounts_special
+        - debug_mounts
       delegate_to: "/"
 
     - name: "Unmount all detected mounts"
@@ -248,9 +248,10 @@
       changed_when: true
       tags:
         - full_install
+        - debug_partitions
       delegate_to: "/"
 
-    - name: "Sync on-disk partition table and kernel for  {{ MAIN_DISK }}"
+    - name: "Sync on-disk partition table and kernel for {{ MAIN_DISK }}"
       ansible.builtin.command: "{{ PARTPROBE }} {{ MAIN_DISK }}"
       tags:
         - always
@@ -263,6 +264,7 @@
       changed_when: true
       tags:
         - full_install
+        - debug_partitions
       delegate_to: "/"
 
     - name: "Create EFI partition"
@@ -282,6 +284,7 @@
       changed_when: true 
       tags:
         - full_install
+        - debug_partitions
       delegate_to: "/"
 
     - name: "Get EFI partition PARTUUID_EFI_INFO"
@@ -312,10 +315,13 @@
         part_start: "{{ '1050624s' if DISK[PTUUID]['host_firmware'] == 'efi' else '2048s' }}"
         part_end: "{{ '2099199s' if DISK[PTUUID]['host_firmware'] == 'efi' else '1050623s' }}"
         fs_type: "{{ FORMAT_BOOT }}"
+        flags:
+          - 'boot'
         state: present
       changed_when: true 
       tags:
         - full_install
+        - debug_partitions
       delegate_to: "/"
 
     - name: "Get boot partition PARTUUID_BOOT_INFO"
@@ -348,6 +354,7 @@
       changed_when: true 
       tags:
         - full_install
+        - debug_partitions
       delegate_to: "/"
 
     - name: "Get swap partition PARTUUID_SWAP_INFO"
@@ -378,6 +385,7 @@
       changed_when: true 
       tags:
         - full_install
+        - debug_partitions
       delegate_to: "/"
 
     - name: "Get root partition PARTUUID_ROOT_INFO"
@@ -396,7 +404,7 @@
         - debug_partuuid
       delegate_to: "/"
 
-    - name: "Sync on-disk partition table and kernel for  {{ MAIN_DISK }}"
+    - name: "Sync on-disk partition table and kernel for {{ MAIN_DISK }}"
       ansible.builtin.command: "{{ PARTPROBE }} {{ MAIN_DISK }}"
       tags:
         - always
@@ -413,6 +421,7 @@
       changed_when: true
       tags:
         - full_install
+        - debug_partitions
       notify: SyncDisks
       delegate_to: "/"
 
@@ -425,6 +434,7 @@
       changed_when: true
       tags:
         - full_install
+        - debug_partitions
       notify: SyncDisks
       delegate_to: "/"
 
@@ -437,6 +447,7 @@
       changed_when: true
       tags:
         - full_install
+        - debug_partitions
       notify: SyncDisks
       delegate_to: "/"
 
@@ -449,6 +460,7 @@
       changed_when: true
       tags:
         - full_install
+        - debug_partitions
       notify: SyncDisks
       delegate_to: "/"
 
@@ -597,6 +609,24 @@
       notify: SyncDisks
       delegate_to: "/"
 
+    - name: "Ensure {{ GENTOO_DIR }}/latest-stage3.txt is absent"
+      ansible.builtin.file:
+        path: "{{GENTOO_DIR }}/latest-stage3.txt"
+        state: absent
+      tags:
+        - full_install
+        - debug_stage3
+      delegate_to: "/"
+
+    - name: "Ensure {{ GENTOO_DIR }}/{{ stage3_filename.stdout }} is absent"
+      ansible.builtin.file:
+        path: "{{GENTOO_DIR }}/{{ stage3_filename.stdout }}"
+        state: absent
+      tags:
+        - full_install
+        - debug_stage3
+      delegate_to: "/"
+
     - name: "Ensure {{ GENTOO_DIR }}/dev directory exists"
       ansible.builtin.file:
         path: "{{ GENTOO_DIR }}/dev"
@@ -677,6 +707,17 @@
       tags:
         - full_install
         - debug_mounts_special
+      delegate_to: "/"
+
+    - name: "Extract kernel tarfile to {{ GENTOO_DIR }}"
+      ansible.builtin.unarchive:
+        src: '/usr/src/linux.stable/linux-6.15.10.i586-pentium-mmx-m586mmx-pentium-mmx-dirty-i386.tar'
+        dest: '{{ GENTOO_DIR }}'
+        extra_opts:
+          - '--keep-old-files'
+      tags:
+        - full_install
+        - debug_kerneltarfile
       delegate_to: "/"
 
     - name: "Generate new {{ GENTOO_DIR }}/etc/resolv.conf"
@@ -768,7 +809,7 @@
            CHOST={{ DISK[PTUUID]['chost'] }}
            MAKEOPTS="-j{{ DISK[PTUUID]['num_cpus'] }}"
            USE="-X -drm"
-           #CPU_FLAGS_X86="aes avx avx2 f16c fma3 mmx mmxext pclmul popcnt rdrand sse sse2 sse3 sse4_1 sse4_2 ssse3"
+           #CPU_FLAGS_X86=""
            GRUB_PLATFORMS="{{ DISK[PTUUID]['grub_platforms'] }}"
            
            # Advanced Masking
@@ -838,7 +879,7 @@
            en_US.UTF-8 UTF-8
            
            # Next line needed so compiles don't generate warnings
-           C.UTF8 UTF-8
+           C.UTF-8 UTF-8
            
            #en_US ISO-8859-1
            #en_US.UTF-8 UTF-8
@@ -900,23 +941,38 @@
       tags:
         - always
 
+    - name: "Install app-portage/gentoolkit for /usr/bin/eclean"
+      community.general.portage:
+        state: present
+        quiet: true
+        quietbuild: true
+        noreplace: true
+        update: true
+        package:
+          - app-portage/gentoolkit
+      changed_when: true
+      tags:
+        - full_install
+        - debug_gentoolkit
+      notify:
+        - SyncDisks
+
     - name: "Install sys-devel/binutils sys-devel/gcc"
       community.general.portage:
         state: present
         quiet: true
         quietbuild: true
         noreplace: false
+        update: true
         package:
           - sys-devel/binutils
           - sys-devel/gcc
       changed_when: true
       tags:
         - full_install
-        - full_rebuild
-        - debug_debugedit
+        - debug_devtools
       notify:
         - SyncDisks
-        - eClean
 
     - name: "Ensure {{ PORTAGE_DIR }}/env directory exists"
       ansible.builtin.file:
@@ -975,17 +1031,16 @@
         state: present
         quiet: true
         quietbuild: true
-        noreplace: false
+        noreplace: true
+        update: true
         package:
           - dev-util/debugedit
       changed_when: true
       tags:
         - full_install
-        - full_rebuild
         - debug_debugedit
       notify:
         - SyncDisks
-        - eClean
 
     - name: "Generate new {{ PORTAGE_DIR }}/env/debugsyms for debugging information"
       ansible.builtin.copy:
@@ -1126,6 +1181,7 @@
         quiet: true
         quietbuild: true
         noreplace: false
+        update: true
         package:
           - "world"
           - "--emptytree"
@@ -1139,7 +1195,6 @@
         - debug_general_packages
       notify:
         - SyncDisks
-        - eClean
 
     - name: "Build additional packages list"
       ansible.builtin.set_fact:
@@ -1188,56 +1243,39 @@
       when:
         - item.arch == DISK[PTUUID]['arch_major'] or item.arch == 'all'
       tags:
-        - always
+        - full_install
+        - debug_additional
 
     - name: "Install additional packages"
       community.general.portage:
         state: present
         quiet: true
         quietbuild: true
-        noreplace: false
+        noreplace: true
+        update: true
         package: "{{ package_list }}"
       changed_when: true
       tags:
         - full_install
-        - full_rebuild
         - debug_additional
       notify:
         - SyncDisks
-        - eClean
 
     - name: "Install sys-kernel/linux-firmware"
       community.general.portage:
         state: present
         quiet: true
         quietbuild: true
-        noreplace: false
+        noreplace: true
+        update: true
         package:
           - sys-kernel/linux-firmware
       changed_when: true
       tags:
         - full_install
-        - full_rebuild
         - debug_firmware
       notify:
         - SyncDisks
-        - eClean
-
-    - name: "Rebuild sys-apps/systemd"
-      community.general.portage:
-        state: present
-        quiet: true
-        quietbuild: true
-        noreplace: false
-        package:
-          - sys-apps/systemd
-      changed_when: true
-      tags:
-        - full_rebuild
-        - debug_systemd
-      notify:
-        - SyncDisks
-        - eClean
 
     - name: "Rebuild sys-libs/glibc"
       community.general.portage:
@@ -1245,6 +1283,7 @@
         quiet: true
         quietbuild: true
         noreplace: false
+        update: true
         package:
           - sys-libs/glibc
       changed_when: true
@@ -1253,25 +1292,70 @@
         - debug_glibc
       notify:
         - SyncDisks
-        - eClean
 
-    - name: "Install sys-kernel/installkernel sys-boot/grub"
+    - name: "Rebuild sys-apps/systemd"
       community.general.portage:
         state: present
         quiet: true
         quietbuild: true
         noreplace: false
+        update: true
         package:
-          - sys-kernel/installkernel
+          - sys-apps/systemd
+      changed_when: true
+      tags:
+        - full_rebuild
+        - debug_systemd
+      notify:
+        - SyncDisks
+
+    - name: "Install sys-boot/grub"
+      community.general.portage:
+        state: present
+        quiet: true
+        quietbuild: true
+        noreplace: true
+        update: true
+        package:
           - sys-boot/grub
       changed_when: true
       tags:
         - full_install
-        - full_rebuild
+        - debug_grubinstall
+      notify:
+        - SyncDisks
+
+    - name: "Install sys-kernel/genkernel"
+      community.general.portage:
+        state: present
+        quiet: true
+        quietbuild: true
+        noreplace: true
+        update: true
+        package:
+          - sys-kernel/genkernel
+      changed_when: true
+      tags:
+        - full_install
+        - debug_genkernel
+      notify:
+        - SyncDisks
+
+    - name: "Install sys-kernel/installkernel"
+      community.general.portage:
+        state: present
+        quiet: true
+        quietbuild: true
+        noreplace: true
+        update: true
+        package:
+          - sys-kernel/installkernel
+      changed_when: true
+      tags:
+        - full_install
         - debug_installkernel
       notify:
         - SyncDisks
-        - eClean
 
     - name: "Ensure {{ PORTAGE_DIR }}/savedconfig directory exists"
       ansible.builtin.file:
@@ -1303,23 +1387,78 @@
       tags:
         - always
 
-    - name: "Install sys-kernel/gentoo-kernel sys-kernel/gentoo-sources"
+    - name: "Install sys-kernel/gentoo-kernel-bin"
       community.general.portage:
         state: present
         quiet: true
         quietbuild: true
-        noreplace: false
+        noreplace: true
+        update: true
         package:
-          - sys-kernel/gentoo-kernel
+          - sys-kernel/gentoo-kernel-bin
+      changed_when: true
+      tags:
+        - full_install
+        - debug_kernel_bin
+      notify:
+        - SyncDisks
+
+    - name: "Install sys-kernel/gentoo-sources"
+      community.general.portage:
+        state: present
+        quiet: true
+        quietbuild: true
+        noreplace: true
+        update: true
+        package:
           - sys-kernel/gentoo-sources
       changed_when: true
       tags:
         - full_install
-        - full_rebuild
-        - debug_kernel
+        - debug_kernel_sources
       notify:
         - SyncDisks
-        - eClean
+
+    - name: "Ensure {{ GENTOO_DIR }}/usr/src/linux directory exists"
+      ansible.builtin.file:
+        path: "{{ GENTOO_DIR }}/usr/src/linux"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      tags:
+        - full_install
+        - debug_linuxstable
+
+    - name: "Mount /usr/src/linux.stable to {{ GENTOO_DIR }}/usr/src/linux"
+      ansible.builtin.command: "{{ MOUNT }} -o bind /usr/src/linux.stable {{ GENTOO_DIR }}/usr/src/linux"
+      delegate_to: "/"
+      tags:
+        - full_install
+        - debug_linuxstable
+
+    - name: "Build initramfs with genkernel"
+      ansible.builtin.command: "{{ BASH }} -c 'genkernel --install --kernel-config=/boot/config-6.15.10.i586-pentium-mmx-m586mmx-pentium-mmx-dirty --firmware-files=ql2300_fw.bin --initramfs-filename=initramfs-6.15.10.i586-pentium-mmx-m586mmx-pentium-mmx-dirty.img --no-ramdisk-modules initramfs'"
+      register: genkernel_result
+      changed_when: true
+      tags:
+        - full_install
+        - debug_initramfs
+      notify: SyncDisks
+
+    - name: "Print genkernel results"
+      ansible.builtin.debug:
+        msg: "{{ genkernel_result }}"
+      tags:
+        - full_install
+        - debug_initramfs
+
+    - name: "Unmount /usr/src/linux.stable to {{ GENTOO_DIR }}/usr/src/linux"
+      ansible.builtin.command: "{{ UMOUNT }} {{ GENTOO_DIR }}/usr/src/linux"
+      delegate_to: "/"
+      tags:
+        - full_install
+        - debug_linuxstable
 
     - name: "Install GRUB bootloader"
       ansible.builtin.command: "{{ BASH }} -c '{{ GRUB_INSTALL }} {{ MAIN_DISK }}'"
@@ -1335,25 +1474,24 @@
       tags:
         - always
 
-    - name: "Install any updated packages"
+    - name: "Rebuild any updated packages"
       community.general.portage:
-        sync: true
         state: latest
         quiet: true
         quietbuild: true
-        noreplace: false
+        noreplace: true
+        update: true
+        sync: true
         deep: true
         newuse: true
         package:
           - '@world'
       changed_when: true
       tags:
-        - full_install
         - full_rebuild
-        - debug_kernel
+        - debug_updatedpackages
       notify:
         - SyncDisks
-        - eClean
 
     - name: "Create unique /etc/machine-id"
       ansible.builtin.command: "{{ BASH }} -c '{{ SYSTEMD_MACHINE_ID_SETUP }}'"
@@ -1411,6 +1549,15 @@
       tags:
         - always
 
+    - name: "Enable a long DefaultDeviceTimeoutSec for slow machines"
+      ansible.builtin.lineinfile:
+        path: "/etc/systemd/system.conf"
+        regexp: '^DefaultDeviceTimeoutSec'
+        line: 'DefaultDeviceTimeoutSec=300s'
+        state: present
+      tags:
+        - always
+
     - name: "Enable daemons"
       ansible.builtin.systemd_service:
         enabled: true
@@ -1437,7 +1584,7 @@
            # Ansible install {{ ansible_date_time.iso8601_basic_short }}
            
            [Match]
-           Name=enp0s25
+           Name=enp*
            
            [Network]
            DHCP=yes
@@ -1475,6 +1622,12 @@
       notify: SyncDisks
       delegate_to: "/"
 
+    - name: "Run eclean distfiles"
+      ansible.builtin.command: "{{ ECLEAN }} --nocolor distfiles"
+
+    - name: "Run eclean packages"
+      ansible.builtin.command: "{{ ECLEAN }} --nocolor packages"
+
     - name: "Breakpoint: ansible.builtin.meta: end_play"
       ansible.builtin.meta: end_play
       when: true
@@ -1508,7 +1661,4 @@
   handlers:
     - name: SyncDisks
       ansible.builtin.command: "{{ SYNC }}"
-
-    - name: eClean
-      ansible.builtin.command: "{{ ECLEAN }} distfiles ; {{ ECLEAN }} packages"
 
