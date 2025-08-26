@@ -133,6 +133,9 @@ MKFS_VFAT: "{{ '/usr/sbin/mkfs.vfat' if LONG_FILENAMES else 'mkfs.vfat' }}"
 # sys-boot/grub
 GRUB_INSTALL: "{{ '/usr/bin/grub-install' if LONG_FILENAMES else 'grub-install' }}"
 
+# sys-boot/grub
+GRUB_MKCONFIG: "{{ '/usr/bin/grub-mkconfig' if LONG_FILENAMES else 'grub-mkconfig' }}"
+
 # sys-apps/systemd
 SYSTEMD_MACHINE_ID_SETUP: "{{ '/usr/bin/systemd-machine-id-setup' if LONG_FILENAMES else 'systemd-machine-id-setup' }}"
 
@@ -276,11 +279,11 @@ DISK:
     arch_mtune: "pentium-mmx"
     accept_keywords: "~x86"
     chost: "i586-pc-linux-gnu"
-    num_cpus: 8
+    num_cpus: 24
     hostname: "i586-i586-m586-i586.example.com"
     host_firmware: "bios"
     gentoo_stage3_choice: "systemd"
-    gentoo_profile_menu: "default/linux/x86/23.0/i486/systemd"
+    gentoo_profile_menu: "default/linux/x86/23.0/i486/time64/systemd"
     grub_platforms: "pc i386-pc"
 
   "00000004":
