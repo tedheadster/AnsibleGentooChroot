@@ -43,8 +43,11 @@ if [ -n "${EFI}" ]; then
 fi
 ${MOUNT} --bind /run ${GENTOO}/run
 ${MOUNT} --type proc /proc ${GENTOO}/proc
+
 ${MOUNT} --rbind /sys ${GENTOO}/sys
 ${MOUNT} --make-rslave ${GENTOO}/sys
+
 ${MOUNT} --rbind /dev ${GENTOO}/dev
 ${MOUNT} --make-rslave ${GENTOO}/dev
+
 ${SWAPON} ${SWAP}
